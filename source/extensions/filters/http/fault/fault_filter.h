@@ -21,19 +21,20 @@ namespace HttpFilters {
 namespace Fault {
 
 /**
- * All stats for the fault filter. @see stats_macros.h
+ * All stats for the fault filter. @see stats_macros.h fixfix doc
  */
 // clang-format off
-#define ALL_FAULT_FILTER_STATS(COUNTER)                                                            \
+#define ALL_FAULT_FILTER_STATS(COUNTER, GAUGE)                                                     \
   COUNTER(delays_injected)                                                                         \
-  COUNTER(aborts_injected)
+  COUNTER(aborts_injected)                                                                         \
+  GAUGE  (active_faults)
 // clang-format on
 
 /**
  * Wrapper struct for connection manager stats. @see stats_macros.h
  */
 struct FaultFilterStats {
-  ALL_FAULT_FILTER_STATS(GENERATE_COUNTER_STRUCT)
+  ALL_FAULT_FILTER_STATS(GENERATE_COUNTER_STRUCT, GENERATE_GAUGE_STRUCT)
 };
 
 /**
@@ -69,15 +70,13 @@ private:
 class FaultFilterConfig {
 public:
   FaultFilterConfig(const envoy::config::filter::http::fault::v2::HTTPFault& fault,
-                    Runtime::Loader& runtime, const std::string& stats_prefix, Stats::Scope& scope,
-                    Runtime::RandomGenerator& generator);
+                    Runtime::Loader& runtime, const std::string& stats_prefix, Stats::Scope& scope);
 
   Runtime::Loader& runtime() { return runtime_; }
   FaultFilterStats& stats() { return stats_; }
   const std::string& statsPrefix() { return stats_prefix_; }
   Stats::Scope& scope() { return scope_; }
   const FaultSettings* settings() { return &settings_; }
-  Runtime::RandomGenerator& randomGenerator() { return generator_; }
 
 private:
   static FaultFilterStats generateStats(const std::string& prefix, Stats::Scope& scope);
@@ -87,7 +86,6 @@ private:
   FaultFilterStats stats_;
   const std::string stats_prefix_;
   Stats::Scope& scope_;
-  Runtime::RandomGenerator& generator_;
 };
 
 typedef std::shared_ptr<FaultFilterConfig> FaultFilterConfigSharedPtr;
@@ -117,17 +115,18 @@ private:
   void abortWithHTTPStatus();
   bool matchesTargetUpstreamCluster();
   bool matchesDownstreamNodes(const Http::HeaderMap& headers);
-
   bool isAbortEnabled();
   bool isDelayEnabled();
   absl::optional<uint64_t> delayDuration();
   uint64_t abortHttpStatus();
+  void incActiveFaults();
 
   FaultFilterConfigSharedPtr config_;
   Http::StreamDecoderFilterCallbacks* callbacks_{};
   Event::TimerPtr delay_timer_;
   std::string downstream_cluster_{};
   const FaultSettings* fault_settings_;
+  bool fault_active_{};
 
   std::string downstream_cluster_delay_percent_key_{};
   std::string downstream_cluster_abort_percent_key_{};

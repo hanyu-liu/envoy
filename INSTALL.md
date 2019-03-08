@@ -8,7 +8,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Installing
 ```
-cd envoy-source-code/ci/build_container
+cd ci/build_container
 export MY_TAG=$(git rev-parse HEAD)
 IMAGE_NAME="sendgrid/envoy-build-ubuntu" CIRCLE_SHA1=$MY_TAG ./docker_build.sh
 cd ../..
